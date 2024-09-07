@@ -1,4 +1,5 @@
 # cmake files and directories
+build
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
@@ -41,6 +42,7 @@ CMakeUserPresets.json
 *.lib
 
 # Executables
+TestTableMap
 *.exe
 *.out
 *.app
