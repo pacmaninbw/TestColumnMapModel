@@ -3,7 +3,7 @@
 #include <vector>
 #include "modelcolumntotablecolumnmap.h"
 
-static bool testInitialization()
+static bool testInitialization(void)
 {
     bool testPassed = true;
 
@@ -39,7 +39,7 @@ static void setUpTestsForColumnAddition(ModelColumnToTableColumnMap &testModel)
 //    testModel.debugPrintEnabledList();
 }
 
-static bool testAddingColumns()
+static bool testAddingColumns(void)
 {
     bool testPassed = true;
 
@@ -60,7 +60,7 @@ static bool testAddingColumns()
     return testPassed;
 }
 
-static bool testNoDuplicateColumns()
+static bool testNoDuplicateColumns(void)
 {
     bool testPassed = true;
 
@@ -86,7 +86,7 @@ static bool testNoDuplicateColumns()
     return testPassed;
 }
 
-static bool testNoDuplicateColumns2()
+static bool testNoDuplicateColumns2(void)
 {
     bool testPassed = true;
     ModelColumnToTableColumnMap testModel;
@@ -114,7 +114,7 @@ static bool testNoDuplicateColumns2()
     return testPassed;
 }
 
-static bool testResetenableList()
+static bool testResetenableList(void)
 {
     bool testPassed = true;
     ModelColumnToTableColumnMap testModel;
@@ -133,7 +133,7 @@ static bool testResetenableList()
     return testPassed;
 }
 
-static bool testAddingColumnsToExistingList()
+static bool testAddingColumnsToExistingList(void)
 {
     bool testPassed = true;
     ModelColumnToTableColumnMap testModel;
@@ -160,7 +160,7 @@ static bool testAddingColumnsToExistingList()
     return testPassed;
 }
 
-static bool testSQLQueryGeneration()
+static bool testSQLQueryGeneration(void)
 {
     bool testPassed = true;
 
@@ -184,7 +184,7 @@ static bool testSQLQueryGeneration()
     return testPassed;
 }
 
-static bool testSQLQueryGenerationAlternateOrder()
+static bool testSQLQueryGenerationAlternateOrder(void)
 {
     bool testPassed = true;
 
@@ -211,6 +211,79 @@ static bool testSQLQueryGenerationAlternateOrder()
     return testPassed;
 }
 
+static bool testUnimplementedColumns(void)
+{
+    bool testPassed = true;
+
+    std::vector<DisplayToDBTransferData> sqlTestInput =
+    {
+        // Test all vital signs including not implemented ones.
+        {ColumnIds::TEMPERATURE, 1, true},
+        {ColumnIds::PUSLE_RATE, 2, true},
+        {ColumnIds::RESPIRATION_RATE, 3, true},
+        {ColumnIds::BLOOD_PRESSURE, 4, true},
+        {ColumnIds::BLOOD_OXYGEN, 5, true},
+        {ColumnIds::WEIGHT, 6, true},
+        {ColumnIds::BLOOD_SUGAR, 7, true},
+        {ColumnIds::SLEEP_HOURS, 8, true},
+        {ColumnIds::SLEEP_INTERRUPTIONS, 9, true},
+        {ColumnIds::NUTRITION_CALORIES, 10, true},
+        {ColumnIds::NUTRITION_SATURATED_FAT, 11, true},
+        {ColumnIds::NUTRITION_TRANS_FAT, 12, true},
+        {ColumnIds::NUTRITION_CHOLESTEROL, 13, true},
+        {ColumnIds::NUTRITION_POTASSIUM, 14, true},
+        {ColumnIds::NUTRITION_PROTIEN, 15, true},
+        {ColumnIds::NUTRITION_SODIUM, 16, true},
+        {ColumnIds::LAST_COLUMN_ID, 17, true},
+    };
+
+    ModelColumnToTableColumnMap testModel;
+    testModel.enableUsedColumns(sqlTestInput);
+    std::string sqlQueryString = testModel.buildQueryString();
+    std::cout << "\n" << sqlQueryString << "\n";
+
+    return testPassed;
+}
+
+static bool testUndefinedEnum(void)
+{
+    bool testPassed = true;
+
+    ColumnIds badValue0 = ColumnIds(249);
+    ColumnIds badValue1 = ColumnIds(250);
+    ColumnIds badValue2 = ColumnIds(251);
+    ColumnIds badValue3 = ColumnIds(252);
+
+    std::vector<DisplayToDBTransferData> sqlTestInput =
+    {
+        // Test all vital signs including not implemented ones.
+        {badValue0, 1, true},
+        {ColumnIds::PUSLE_RATE, 2, true},
+        {badValue1, 3, true},
+        {ColumnIds::BLOOD_PRESSURE, 4, true},
+        {ColumnIds::BLOOD_OXYGEN, 5, true},
+        {ColumnIds::WEIGHT, 6, true},
+        {ColumnIds::BLOOD_SUGAR, 7, true},
+        {ColumnIds::SLEEP_HOURS, 8, true},
+        {ColumnIds::SLEEP_INTERRUPTIONS, 9, true},
+        {badValue2, 10, true},
+        {badValue3, 11, true},
+        {ColumnIds::NUTRITION_TRANS_FAT, 12, true},
+        {ColumnIds::NUTRITION_CHOLESTEROL, 13, true},
+        {ColumnIds::NUTRITION_POTASSIUM, 14, true},
+        {ColumnIds::NUTRITION_PROTIEN, 15, true},
+        {ColumnIds::NUTRITION_SODIUM, 16, true},
+        {ColumnIds::LAST_COLUMN_ID, 17, true},
+    };
+
+    ModelColumnToTableColumnMap testModel;
+    testModel.enableUsedColumns(sqlTestInput);
+    std::string sqlQueryString = testModel.buildQueryString();
+    std::cout << "\n" << sqlQueryString << "\n";
+
+    return testPassed;
+}
+
 typedef struct oneTest
 {
     bool (*theTest)(void);
@@ -231,20 +304,45 @@ int main()
         {testResetenableList, "Reset enable list test failed.\n"},
         {testAddingColumnsToExistingList, "Adding columns to existing enabled list test failed.\n"},
         {testSQLQueryGeneration, "SQL query test failed.\n"},
-        {testSQLQueryGenerationAlternateOrder, "SQL query with alternate order of columns test failed\n"}
+        {testSQLQueryGenerationAlternateOrder, "SQL query with alternate order of columns test failed\n"},
+        // The followi.ng 2 tests are attempts to implement negative testing
+        // No errors were detected during run or valgrind.
+        // No exceptions were thrown
+        {testUnimplementedColumns, "Testing unimiplemented columns"},
+        {testUndefinedEnum, "Testing Invalid enum values"}
     };
     std::size_t testCount = 0;
 
-    for (auto thisTest: testList)
-    {
-        if (!thisTest.theTest())
+    try {
+        for (auto thisTest: testList)
         {
-            std::cerr << thisTest.errorString;
-            exitTestStatus = EXIT_FAILURE;
-            break;
+            if (!thisTest.theTest())
+            {
+                std::cerr << thisTest.errorString;
+                exitTestStatus = EXIT_FAILURE;
+                break;
+            }
+            testCount++;
         }
-        testCount++;
     }
+    catch (std::exception &ex) {
+        std::cerr << "Exception Caught: " << ex.what() << "\n";
+        exitTestStatus = EXIT_FAILURE;
+    }
+
+    catch (std::string &sex)
+    {
+        std::cerr << "String Exception Caught: " << sex << "\n";
+        exitTestStatus = EXIT_FAILURE;
+    }
+
+    catch (...)
+    {
+
+        std::exception_ptr p = std::current_exception();
+        std::clog <<(p ? p.__cxa_exception_type()->name() : "null") << "\n";
+    }
+
 
     if (exitTestStatus != EXIT_SUCCESS)
     {
