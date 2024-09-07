@@ -11,3 +11,5 @@ This unit test should build and run on any system that has CMake installed.
 It was developed on Ubuntu 22.04 using the GNU C++ compiler (version 12 for C++20 standard).
 
 The IDE used to develope it was QT Creator version 6.
+
+The IDE used to maintain it is Visual Studio Code.
