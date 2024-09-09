@@ -17,10 +17,11 @@ add_executable(TestTableMap
     dispalytodbtransferdata.h
     modelcolumntotablecolumnmap.h
     modelcolumntotablecolumnmap.cpp
+    TableNameDictionary.h
+    TableNameDictionary.cpp
     )
 
 target_compile_features(TestTableMap PUBLIC cxx_std_20)
-target_compile_definitions(TestTableMap PRIVATE MY_UNIT_TEST)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     # warning level 4 and all warnings as errors

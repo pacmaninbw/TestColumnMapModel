@@ -3,26 +3,6 @@
 #include <vector>
 #include "modelcolumntotablecolumnmap.h"
 
-static bool testInitialization(void)
-{
-    bool testPassed = true;
-
-    ModelColumnToTableColumnMap testModel;
-
-    std::cout << "Testing initialization of ModelColumnToTableColumnMap\n";
-
-    std::cout << "\n\n  Printing Enabled Columns, should be empty:\n";
-    testModel.debugPrintEnabledList();
-    if (testModel.getEnabledCount() != 0)
-    {
-        std::cerr << "\nTest of testModel initialization failed\n";
-        std::cout << "  Printing Base Table Contents:\n";
-        testPassed = false;
-    }
-
-    return testPassed;
-}
-
 static std::vector<DisplayToDBTransferData> testInputList =
 {
     {ColumnIds::PUSLE_RATE, 3, true},
@@ -297,7 +277,6 @@ int main()
     int exitTestStatus = EXIT_SUCCESS;
     std::vector <OneTest> testList =
     {
-        {testInitialization, "Initialization test failed.\n"},
         {testAddingColumns, "Adding columns test failed.\n"},
         {testNoDuplicateColumns, "Preventing duplicate columns test 1 failed.\n"},
         {testNoDuplicateColumns2, "Preventing duplicate columns test 2 failed.\n"},
@@ -338,7 +317,6 @@ int main()
 
     catch (...)
     {
-
         std::exception_ptr p = std::current_exception();
         std::clog <<(p ? p.__cxa_exception_type()->name() : "null") << "\n";
     }

@@ -20,6 +20,7 @@ public:
     TableIds getTableId() const noexcept { return tableID; }
     const std::string getName() const noexcept { return name; };
     const std::vector<std::string> getColumnsInTable() noexcept { return columnsInTable; };
+    void showContents() const noexcept;
 
 private:
     ColumnIds columnId;

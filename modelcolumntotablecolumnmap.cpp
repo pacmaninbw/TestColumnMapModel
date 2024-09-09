@@ -1,5 +1,6 @@
 ﻿#include <algorithm>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "columnidenum.h"
@@ -8,33 +9,11 @@
 #include "dispalytodbtransferdata.h"
 #include "modelcolumntotablecolumnmap.h"
 #include "hdb_columnnames.h"
+#include "TableNameDictionary.h"
 
 #if (DEBUG || MY_UNIT_TEST)
 #include <iostream>
 #endif
-
-
-/*
- * This data was originally stored in stat staticModelMap. This data is only needed
- * when the SQL Query is generated so it was separated out. The TableIds enum was
- * added to provide the link between the ColumnAccessDataMap object and the table
- * names. The initialization of staticModelMap was becoming too complex.
- */
-static std::vector<TableIdToTableName> tableNames =
-{
-    {TableIds::TEMPURATURE,     "Tempurature", "tmp" },
-    {TableIds::REPIRATION_RATE, "RepirationRate", "resp" },
-    {TableIds::BLOOD_PRESSURE,  "BloodPressure", "bp" },
-    {TableIds::BLOOD_OXYGEN,    "BloodOxygen", "bo" },
-    {TableIds::WEIGHT,          "Weight", "wt" },
-    {TableIds::BLOOD_SUGAR,     "BloodSugar", "bg" },
-    {TableIds::EXERCISE,        "Exercise", "exer" },
-    {TableIds::SLEEP,           "Sleep", "slp" },
-    {TableIds::BOWEL_MOVEMENTS, "BowlMovements", "bm" },
-    {TableIds::NUTRITION,       "Nutrition", "nut" },
-    {TableIds::NOTES,           "Notes", "nts" }
-};
-
 
 /*
  * Static basis for display column to database table and column mapping.
@@ -287,10 +266,11 @@ bool ModelColumnToTableColumnMap::duplicateInEnabledList(DisplayToDBTransferData
  */
 std::string ModelColumnToTableColumnMap::addJoin(TableIds tblId) noexcept
 {
-    TableIdToTableName tableData = findTableData(tblId);
+    TableNameDictionary tabDef;
+    std::pair<std::string_view, std::string_view> tabNamePair = tabDef.getTableNames(tblId);
 
-    std::string tableName(tableData.tableName);
-    std::string tablePrefix(tableData.abrevTableName);
+    std::string tableName(tabNamePair.first);
+    std::string tablePrefix(tabNamePair.second);
     std::string sqlJoinClause(" LEFT JOIN " + tableName + " AS " + tablePrefix);
 
     sqlJoinClause += " ON " + tablePrefix + "." +
@@ -307,8 +287,11 @@ std::string ModelColumnToTableColumnMap::addJoin(TableIds tblId) noexcept
 std::string ModelColumnToTableColumnMap::addColumn(ColumnIds columnId) noexcept
 {
     ColumnAccessDataMap columnData = getColumnData(columnId);
+    TableNameDictionary tabDef;
     std::string addedColumnsWithTableName;
-    std::string tablePrefix(getSqlColumnQueryPrefix(columnData) + ".");
+    std::string tablePrefix(tabDef.getShortName(columnData.getTableId()));
+    tablePrefix += ".";
+
     bool needComma = false;
 
     for (auto column: columnData.getColumnsInTable())
@@ -360,41 +343,11 @@ const ColumnAccessDataMap ModelColumnToTableColumnMap::getColumnData(ColumnIds c
     return *columnSource;
 }
 
-const TableIdToTableName ModelColumnToTableColumnMap::findTableData(TableIds tableId) const noexcept
-{
-    TableIdToTableName badTable = {TableIds::NO_TABLE, "bad table", "bad"};
-
-    auto tblDataIterator = std::find_if(tableNames.begin(), tableNames.end(),
-        [&tableId](TableIdToTableName &tbd) {return (tbd.id == tableId); });
-    if (tblDataIterator == tableNames.end())
-    {
-        return badTable;
-    }
-
-    return *tblDataIterator;
-}
-
-const TableIdToTableName ModelColumnToTableColumnMap::findTableData(ColumnIds columnId) const noexcept
-{
-    TableIdToTableName badTable = {TableIds::NO_TABLE, "bad table", "bad"};
-
-    ColumnAccessDataMap columnData = getColumnData(columnId);
-    if (columnData.getColumnId() != ColumnIds::NO_COLUMN)
-    {
-        return findTableData(columnData.getTableId());
-    }
-    else
-    {
-        return badTable;
-    }
-}
-
-#if (DEBUG || MY_UNIT_TEST)
 void ModelColumnToTableColumnMap::debugPrintTransferDataList(std::vector<DisplayToDBTransferData> testList)
 {
     for (auto testMember: testList)
     {
-        debugPrintTransferData(testMember);
+        testMember.showStruct();
     }
 }
 
@@ -405,39 +358,10 @@ void ModelColumnToTableColumnMap::debugPrintList(std::vector<ColumnAccessDataMap
     for (auto testMember: listToPrint)
     {
         std::cout << "Column " << testCount << "\n";
-        debugPrintListMember(testMember);
+        testMember.showContents();
         testCount++;
     }
 
 }
 
-void ModelColumnToTableColumnMap::debugPrintListMember(ColumnAccessDataMap mapToPrint)
-{
-    HDB_ColumnNames dictionary;
-
-    std::cout << "\tColumn ID converted to string " <<
-        dictionary.convertToString(mapToPrint.getColumnId()) << "\n";
-    std::cout << "\tColumn Name " << mapToPrint.getName() << "\n";
-    std::cout << "\tTable Name: " << getTableName(mapToPrint) << "\n";
-
-     const std::vector<std::string> columnsInTable = mapToPrint.getColumnsInTable();
-     std::cout << "\tColumns to access in specified table:\n";
-     for (auto columnName: columnsInTable)
-     {
-         std::cout << "\t\t" << columnName << "\n";
-     }
-     // Provide vertical spacing to make the test output more readable.
-     std::cout << "\n\n";
-}
-
-void ModelColumnToTableColumnMap::debugPrintTransferData(DisplayToDBTransferData transferData)
-{
-    HDB_ColumnNames dictionary;
-
-    std::cout << "Debugging or Testing DisplayToDBTransferData\n";
-    std::cout << "\tColumnId: " << dictionary.convertToString(transferData.columnId)  << "\n";
-    std::cout << "\tPosition: " << transferData.position << "\n";
-    std::cout << "\tEnabled: " << (transferData.enabled ? "True" : "False") << "\n";
-}
-#endif
 
