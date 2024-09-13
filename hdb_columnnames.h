@@ -2,7 +2,7 @@
 #define HDB_COLUMNNAMES_H
 
 #include <map>
-#include <string_view>
+#include <string>
 #include "columnidenum.h"
 
 /*
@@ -15,17 +15,17 @@ class HDB_ColumnNames
 {
 public:
     HDB_ColumnNames();
-    std::string_view convertToString(ColumnIds id) const noexcept;
-    ColumnIds convertToId(std::string_view columnName) const noexcept;
+    std::string convertToString(ColumnIds id) const noexcept;
+    ColumnIds convertToId(std::string columnName) const noexcept;
 
 private:
 /*
  * The 2 maps create a dictionary of strings to enums
 */
-    std::map<ColumnIds, std::string_view> idToName;
-    std::map<std::string_view, ColumnIds> nameToID;
+    std::map<ColumnIds, std::string> idToName;
+    std::map<std::string, ColumnIds> nameToID;
 
-    void addToDictionary(ColumnIds id, std::string_view columnName);
+    void addToDictionary(ColumnIds id, std::string columnName);
 };
 
 #endif // HDB_COLUMNNAMES_H

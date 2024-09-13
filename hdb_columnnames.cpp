@@ -39,9 +39,9 @@ HDB_ColumnNames::HDB_ColumnNames()
     addToDictionary(ColumnIds::NOTES, "Notes");
 }
 
-std::string_view HDB_ColumnNames::convertToString(ColumnIds id) const noexcept
+std::string HDB_ColumnNames::convertToString(ColumnIds id) const noexcept
 {
-    std::string_view columnName;
+    std::string columnName;
 
     if (auto search = idToName.find(id); search != idToName.end())
     {
@@ -55,7 +55,7 @@ std::string_view HDB_ColumnNames::convertToString(ColumnIds id) const noexcept
     return columnName;
 }
 
-ColumnIds HDB_ColumnNames::convertToId(std::string_view columnName) const noexcept
+ColumnIds HDB_ColumnNames::convertToId(std::string columnName) const noexcept
 {
     ColumnIds id = ColumnIds::NO_COLUMN;
 
@@ -67,7 +67,7 @@ ColumnIds HDB_ColumnNames::convertToId(std::string_view columnName) const noexce
     return id;
 }
 
-void HDB_ColumnNames::addToDictionary(ColumnIds id, std::string_view columnName)
+void HDB_ColumnNames::addToDictionary(ColumnIds id, std::string columnName)
 {
     idToName.insert({id, columnName});
     nameToID.insert({columnName, id});
