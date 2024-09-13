@@ -15,6 +15,7 @@ add_executable(TestTableMap
     hdb_columnnames.h
     hdb_columnnames.h
     dispalytodbtransferdata.h
+    dispalytodbtransferdata.cpp
     modelcolumntotablecolumnmap.h
     modelcolumntotablecolumnmap.cpp
     TableNameDictionary.h
