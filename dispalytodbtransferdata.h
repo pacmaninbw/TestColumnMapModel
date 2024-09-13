@@ -2,24 +2,20 @@
 #define DISPALYTODBTRANSFERDATA_H
 
 #include "columnidenum.h"
-#include "hdb_columnnames.h"
-#include <iostream>
+//#include <string>
 
+/*
+ * The second field in the struct is the unsigned int position value. When
+ * initializing this struct the value may appear to be a magic number, however,
+ * it indicates the position in the output of the columns in the table.
+ */
 typedef struct DisplayToDBTransferData
 {
     ColumnIds columnId = ColumnIds::NO_COLUMN;
     unsigned int position = 0;
     bool enabled = false;
 
-    void showStruct()
-    {
-        HDB_ColumnNames dictionary;
-
-        std::cout << "Debugging or Testing DisplayToDBTransferData\n";
-        std::cout << "\tColumnId: " << dictionary.convertToString(columnId)  << "\n";
-        std::cout << "\tPosition: " << position << "\n";
-        std::cout << "\tEnabled: " << (enabled ? "True" : "False") << "\n";
-    }
+    std::string toString();
 }
 DisplayToDBTransferData;
 
