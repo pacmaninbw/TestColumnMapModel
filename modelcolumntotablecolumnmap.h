@@ -17,6 +17,7 @@ public:
     void enableUsedColumns(std::vector<DisplayToDBTransferData> dialogInput) noexcept;
     const std::string buildQueryString() noexcept;
     const std::vector<DisplayToDBTransferData> getEnabledList() const noexcept { return enabledList; };
+    // The following methods are used primarily in Unit Testing.
     std::size_t getEnabledCount() const noexcept { return enabledList.size(); };
     void resetEnabledColumns();
     void debugPrintEnabledList() { debugPrintTransferDataList(enabledList); };

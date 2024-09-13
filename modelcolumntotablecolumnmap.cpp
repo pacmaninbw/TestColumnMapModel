@@ -1,4 +1,5 @@
 ﻿#include <algorithm>
+#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -10,10 +11,6 @@
 #include "modelcolumntotablecolumnmap.h"
 #include "hdb_columnnames.h"
 #include "TableNameDictionary.h"
-
-#if (DEBUG || MY_UNIT_TEST)
-#include <iostream>
-#endif
 
 /*
  * Static basis for display column to database table and column mapping.
@@ -198,7 +195,7 @@ const std::string ModelColumnToTableColumnMap::buildQueryString() noexcept
     }
 
     std::string sqlQuery("SELECT " + selectedColumns +
-        +"\nFROM Date_Primary_Indexing AS dpi\n " + buildJoinList(tablesToJoin) +
+        +"\nFROM Date_Primary_Indexing AS dpi\n" + buildJoinList(tablesToJoin) +
         "ORDER BY dpi.Date_of_items ASC;");
 
     return sqlQuery;
@@ -347,7 +344,7 @@ void ModelColumnToTableColumnMap::debugPrintTransferDataList(std::vector<Display
 {
     for (auto testMember: testList)
     {
-        testMember.showStruct();
+        std::cout << testMember.toString();
     }
 }
 
@@ -363,5 +360,4 @@ void ModelColumnToTableColumnMap::debugPrintList(std::vector<ColumnAccessDataMap
     }
 
 }
-
 
