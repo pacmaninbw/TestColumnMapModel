@@ -428,6 +428,7 @@ static char asciitolower(char in) {
     return in;
 }
 
+// Copied from another Stack Overflow answer.
 static bool is_number(const std::string& s)
 {
     return !s.empty() && std::find_if(s.begin(), 
@@ -471,7 +472,7 @@ static bool getContinueAfterFail()
 
     std::string safeInput;
     do {
-        std::cout << "Continue testing after a failure? [Y/n]\n>>";
+        std::cout << "Continue testing after a failure? [Y(es)/n(o)]\n>>";
         std::cin >> safeInput;
         std::transform(safeInput.begin(), safeInput.end(),
             safeInput.begin(), asciitolower);
@@ -517,7 +518,7 @@ static std::vector <OneTest> testList =
     {testAddingColumnsToExistingList, "Adding columns to existing enabled list test failed.\n"},
     {testBasicSQLQueryGeneration, "SQL query test failed.\n"},
     {testSQLQueryGenerationAlternateOrder, "SQL query with alternate order of columns test failed\n"},
-    // The followi.ng 2 tests are attempts to implement negative testing
+    // The following 2 tests are attempts to implement negative testing
     // No errors were detected during run or valgrind.
     {testUnimplementedColumns, "Testing unimiplemented columns, SQL Query should not have been generated."},
     {testUndefinedEnum, "Testing Invalid enum values, SQL Query should not have been generated."}
