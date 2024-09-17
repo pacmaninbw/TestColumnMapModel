@@ -12,9 +12,16 @@ ColumnAccessDataMap::ColumnAccessDataMap(ColumnIds id,
       tableID{tabIdIn},
       name{nameIn}
 {
-    for (auto column: columns)
+    if (columns.size() > 0)
     {
-        columnsInTable.push_back(column);
+        for (auto column: columns)
+        {
+            columnsInTable.push_back(column);
+        }
+    }
+    else
+    {
+        notImplemented = true;
     }
 }
 

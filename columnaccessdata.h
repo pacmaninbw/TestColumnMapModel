@@ -21,12 +21,14 @@ public:
     const std::string getName() const noexcept { return name; };
     const std::vector<std::string> getColumnsInTable() noexcept { return columnsInTable; };
     void showContents() const noexcept;
+    bool notImplementedYet() const noexcept { return notImplemented; }
 
 private:
     ColumnIds columnId;
     TableIds tableID;
     std::string name;
     std::vector<std::string> columnsInTable;
+    bool notImplemented = false;
 };
 
 #endif // COLUMNACCESSDATA_H
