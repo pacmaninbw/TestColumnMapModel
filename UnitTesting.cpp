@@ -8,6 +8,7 @@
 
 static bool continueAfterFail = false;
 static std::size_t debugLevel = 0;
+static bool exceptionsEnabled = false;
 
 typedef struct unitTest
 {
@@ -28,6 +29,7 @@ void UnitTesting::getUserTestConfiguration()
 {
     getDebugLevel();
     getContinueAfterFail();
+    allowExceptions();
 }
 
 void UnitTesting::separaterLine(void)
@@ -83,6 +85,21 @@ void UnitTesting::getContinueAfterFail(void)
     } while (safeInput[0] != 'y' && safeInput[0] != 'n');
 }
 
+void UnitTesting::allowExceptions(void)
+{
+    std::string safeInput;
+    do {
+        std::cout << "Allow exceptions to be throw during SQL code generation? [Y(es)/n(o)]\n>>";
+        std::cin >> safeInput;
+        std::transform(safeInput.begin(), safeInput.end(),
+            safeInput.begin(), asciitolower);
+        if (safeInput[0] == 'y')
+        {
+            exceptionsEnabled = true;
+        }
+    } while (safeInput[0] != 'y' && safeInput[0] != 'n');
+}
+
 /*
  * The following functions are declared as static functions rather then
  * member functions of the UnitTesting class because there is no way in
@@ -117,7 +134,7 @@ static bool testAddingColumns()
 {
     bool testPassed = true;
 
-    ModelColumnToTableColumnMap testModel;
+    ModelColumnToTableColumnMap testModel(exceptionsEnabled);
 
     std::cout << "\n\n  Printing Enabled Columns, should be empty:\n";
 
@@ -144,7 +161,7 @@ static bool testNoDuplicateColumns()
 {
     bool testPassed = true;
 
-    ModelColumnToTableColumnMap testModel;
+    ModelColumnToTableColumnMap testModel(exceptionsEnabled);
 
     setUpTestsForColumnAddition(testModel);
 
@@ -172,7 +189,7 @@ static bool testNoDuplicateColumns()
 static bool testNoDuplicateColumns2()
 {
     bool testPassed = true;
-    ModelColumnToTableColumnMap testModel;
+    ModelColumnToTableColumnMap testModel(exceptionsEnabled);
 
     setUpTestsForColumnAddition(testModel);
 
@@ -200,7 +217,7 @@ static bool testNoDuplicateColumns2()
 static bool testResetenableList()
 {
     bool testPassed = true;
-    ModelColumnToTableColumnMap testModel;
+    ModelColumnToTableColumnMap testModel(exceptionsEnabled);
 
     setUpTestsForColumnAddition(testModel);
     std::cout << "\n\nTesting reset enabled list\n";
@@ -219,7 +236,7 @@ static bool testResetenableList()
 static bool testAddingColumnsToExistingList()
 {
     bool testPassed = true;
-    ModelColumnToTableColumnMap testModel;
+    ModelColumnToTableColumnMap testModel(exceptionsEnabled);
 
     setUpTestsForColumnAddition(testModel);
 
@@ -261,7 +278,7 @@ static bool genericSQLQueryGenerationTest(
              " an SQL Query should be generated.\n" :
              " an SQL Query should NOT be generated.\n");
 
-        ModelColumnToTableColumnMap testModel;
+        ModelColumnToTableColumnMap testModel(exceptionsEnabled);
         testModel.enableUsedColumns(sqlTestInput);
     
         std::string sqlQueryString = testModel.buildQueryString();
@@ -281,6 +298,10 @@ static bool genericSQLQueryGenerationTest(
             testPassed = false;
         }
 
+    }
+    catch (std::invalid_argument &ex) {
+        std::cerr << testName << "Invalid Argument Exception Caught: " << ex.what() << "\n";
+        testPassed = false;
     }
     catch (std::exception &ex) {
         std::cerr << testName << " Exception Caught: " << ex.what() << "\n";
@@ -422,8 +443,7 @@ static bool testUnimplementedColumns()
         {ColumnIds::NUTRITION_CHOLESTEROL, 13, true},        // Not Implemented yet
         {ColumnIds::NUTRITION_POTASSIUM, 14, true},
         {ColumnIds::NUTRITION_PROTIEN, 15, true},
-        {ColumnIds::NUTRITION_SODIUM, 16, true},
-        {ColumnIds::LAST_COLUMN_ID, 17, true},
+        {ColumnIds::NUTRITION_SODIUM, 16, true}
     };
 
     std::string expectedSQLQuery =  "";
@@ -460,19 +480,16 @@ static bool testUndefinedEnum()
         {ColumnIds::PUSLE_RATE, 2, true},
         {badColumnIds[1], 3, true},
         {ColumnIds::BLOOD_PRESSURE, 4, true},
-        {ColumnIds::BLOOD_OXYGEN, 5, true},
-        {ColumnIds::WEIGHT, 6, true},
-        {ColumnIds::BLOOD_SUGAR, 7, true},
-        {ColumnIds::SLEEP_HOURS, 8, true},
-        {ColumnIds::SLEEP_INTERRUPTIONS, 9, true},
-        {badColumnIds[2], 10, true},
-        {badColumnIds[3], 11, true},
-        {ColumnIds::NUTRITION_TRANS_FAT, 12, true},
-        {ColumnIds::NUTRITION_CHOLESTEROL, 13, true},
-        {ColumnIds::NUTRITION_POTASSIUM, 14, true},
-        {ColumnIds::NUTRITION_PROTIEN, 15, true},
-        {ColumnIds::NUTRITION_SODIUM, 16, true},
-        {ColumnIds::LAST_COLUMN_ID, 17, true},
+        {ColumnIds::WEIGHT, 5, true},
+        {ColumnIds::BLOOD_SUGAR, 6, true},
+        {ColumnIds::SLEEP_HOURS, 7, true},
+        {ColumnIds::SLEEP_INTERRUPTIONS, 8, true},
+        {badColumnIds[2], 9, true},
+        {badColumnIds[3], 10, true},
+        {ColumnIds::NUTRITION_POTASSIUM, 11, true},
+        {ColumnIds::NUTRITION_PROTIEN, 12, true},
+        {ColumnIds::NUTRITION_SODIUM, 13, true},
+        {ColumnIds::LAST_COLUMN_ID, 14, true},
     };
 
     std::string expectedSQLQuery =  "";
