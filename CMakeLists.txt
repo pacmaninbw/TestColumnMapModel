@@ -20,6 +20,8 @@ add_executable(TestTableMap
     modelcolumntotablecolumnmap.cpp
     TableNameDictionary.h
     TableNameDictionary.cpp
+    Handle_Unexpected_Exceptions.cpp
+    UnitTesting.cpp
     )
 
 target_compile_features(TestTableMap PUBLIC cxx_std_20)
