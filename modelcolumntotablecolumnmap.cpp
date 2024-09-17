@@ -1,16 +1,19 @@
 ﻿#include <algorithm>
+#include "columnidenum.h"
+#include "columnaccessdata.h"
+#include "dispalytodbtransferdata.h"
+#include <exception>
+#include "Handle_Unexpected_Exceptions.h"
+#include "hdb_columnnames.h"
 #include <iostream>
+#include "modelcolumntotablecolumnmap.h"
+#include <stdexcept>
 #include <string>
+#include "tableidenum.h"
+#include "TableNameDictionary.h"
 #include <utility>
 #include <vector>
 
-#include "columnidenum.h"
-#include "tableidenum.h"
-#include "columnaccessdata.h"
-#include "dispalytodbtransferdata.h"
-#include "modelcolumntotablecolumnmap.h"
-#include "hdb_columnnames.h"
-#include "TableNameDictionary.h"
 
 /*
  * Static basis for display column to database table and column mapping.
@@ -24,7 +27,7 @@ static std::vector<ColumnAccessDataMap> staticModelMap =
         ColumnIds::TEMPERATURE,
         TableIds::TEMPURATURE,
         "Tempurature",
-        {"No Columns", "Not Implemented"}
+        {}
     },
     {
         ColumnIds::PUSLE_RATE,
@@ -36,7 +39,7 @@ static std::vector<ColumnAccessDataMap> staticModelMap =
         ColumnIds::RESPIRATION_RATE,
         TableIds::REPIRATION_RATE,
         "Respiration Rate",
-        {"No Columns", "Not Implemented"}
+        {}
     },
     {
         ColumnIds::BLOOD_PRESSURE,
@@ -48,7 +51,7 @@ static std::vector<ColumnAccessDataMap> staticModelMap =
         ColumnIds::BLOOD_OXYGEN,
         TableIds::BLOOD_OXYGEN,
         "Blood Oxygen",
-        {"No Columns", "Not Implemented"},
+        {},
     },
     {
         ColumnIds::WEIGHT,
@@ -99,19 +102,19 @@ static std::vector<ColumnAccessDataMap> staticModelMap =
         ColumnIds::NUTRITION_SATURATED_FAT,
         TableIds::NUTRITION,
         "Saturated Fat",
-        {"No Column", "Not Implemented"}
+        {}
     },
     {
         ColumnIds::NUTRITION_TRANS_FAT,
         TableIds::NUTRITION,
         "Trans Fat",
-        {"No Column", "Not Implemented"}
+        {}
     },
     {
         ColumnIds::NUTRITION_CHOLESTEROL,
         TableIds::NUTRITION,
         "Cholesterol",
-        {"No Column", "Not Implemented"}
+        {}
     },
     {
         ColumnIds::NUTRITION_SODIUM,
@@ -129,7 +132,7 @@ static std::vector<ColumnAccessDataMap> staticModelMap =
         ColumnIds::NUTRITION_TOTAL_SUGARS,
         TableIds::NUTRITION,
         "Total Sugars",
-        {"No Column", "Not Implemented"}
+        {}
     },
     {
         ColumnIds::NUTRITION_PROTIEN,
@@ -141,19 +144,19 @@ static std::vector<ColumnAccessDataMap> staticModelMap =
         ColumnIds::NUTRITION_VITAMIN_D,
         TableIds::NUTRITION,
         "Vitamin D",
-        {"No Column", "Not Implemented"}
+        {}
     },
     {
         ColumnIds::NUTRITION_CALCIUM,
         TableIds::NUTRITION,
         "Calcium",
-        {"No Column", "Not Implemented"}
+        {}
     },
     {
         ColumnIds::NUTRITION_IRON,
         TableIds::NUTRITION,
         "Iron",
-        {"No Column", "Not Implemented"}
+        {}
     },
     {
         ColumnIds::NUTRITION_POTASSIUM,
@@ -174,30 +177,59 @@ static std::vector<ColumnAccessDataMap> staticModelMap =
 
 const std::string ModelColumnToTableColumnMap::buildQueryString() noexcept
 {
-    /*
-     * Sort the list to the order requested by the user.
-     */
-    std::sort(enabledList.begin(), enabledList.end(),
-        [](DisplayToDBTransferData a, DisplayToDBTransferData b)
-            {return  a.position < b.position;});
+    std::string sqlQuery;
 
-    /*
-     * Generate an SQL query from the selected columns.
-     */
-    std::string selectedColumns("dpi.Date_of_items");
-    std::vector<TableIds> tablesToJoin;
+    try {
+        if (sqlSanityCheck())   // May throw an excpetion if exceptions enabled.
+        {
+            /*
+            * Sort the list to the order requested by the user.
+            */
+            std::sort(enabledList.begin(), enabledList.end(),
+                [](DisplayToDBTransferData a, DisplayToDBTransferData b)
+                    {return  a.position < b.position;});
 
-    for (auto columnData: enabledList)
+            /*
+            * Generate an SQL query from the selected columns.
+            */
+            std::string selectedColumns("dpi.Date_of_items");
+            std::vector<TableIds> tablesToJoin;
+
+            for (auto columnData: enabledList)
+            {
+                selectedColumns += ",\n";
+                selectedColumns += addColumn(columnData.columnId);
+                addTableToJoinList(tablesToJoin,
+                    getColumnData(columnData.columnId).getTableId());
+            }
+
+            sqlQuery += ("SELECT " + selectedColumns +
+                +"\nFROM Date_Primary_Indexing AS dpi\n" +
+                buildJoinList(tablesToJoin) +
+                "ORDER BY dpi.Date_of_items ASC;");
+        }
+    }
+    catch (std::invalid_argument &ex) {
+        std::cerr << "Programmer Error: " << ex.what() << "\n";
+        sqlQuery.clear();
+    }
+    catch (std::exception &ex) {
+        std::cerr << "Programmer Error: " << ex.what() << "\n";
+        sqlQuery.clear();
+    }
+    catch (std::string &sex)
     {
-        selectedColumns += ",\n";
-        selectedColumns += addColumn(columnData.columnId);
-        addTableToJoinList(tablesToJoin, getColumnData(columnData.columnId).getTableId());
+        std::cerr << "Programmer Error: " << sex << "\n";
+        sqlQuery.clear();
+    }
+    catch (...)
+    {
+        std::exception_ptr p = std::current_exception();
+        handle_unexpected_eptr(p);
+        sqlQuery.clear();
     }
 
-    std::string sqlQuery("SELECT " + selectedColumns +
-        +"\nFROM Date_Primary_Indexing AS dpi\n" + buildJoinList(tablesToJoin) +
-        "ORDER BY dpi.Date_of_items ASC;");
-
+ 
     return sqlQuery;
 }
 
@@ -212,15 +244,47 @@ void ModelColumnToTableColumnMap::enableUsedColumns(std::vector<DisplayToDBTrans
     for (auto inputItem: dialogInput)
     {
         // Position 0 is reserved for the Date.
-        if (inputItem.columnId != ColumnIds::NO_COLUMN && inputItem.position !=0)
+        if (inputItem.columnId != ColumnIds::NO_COLUMN &&
+            inputItem.columnId != ColumnIds::LAST_COLUMN_ID &&
+            inputItem.position !=0)
         {
-            enableAndAddtoList(inputItem);
+            try
+            {
+                if (!enableAndAddtoList(inputItem))
+                {
+                    enabledList.clear();
+                    return;
+                }
+            }
+            catch (std::invalid_argument &ex) {
+                std::cerr << "Programmer Error: " << ex.what() << "\n";
+                enabledList.clear();
+                return;
+            }
+            catch (std::exception &ex) {
+                std::cerr << "Programmer Error: " << ex.what() << "\n";
+                enabledList.clear();
+                return;
+            }
+            catch (std::string &sex)
+            {
+                std::cerr << "Programmer Error: " << sex << "\n";
+                enabledList.clear();
+                return;
+            }
+            catch (...)
+            {
+                std::exception_ptr p = std::current_exception();
+                handle_unexpected_eptr(p);
+                enabledList.clear();
+                return;
+            }            
         }
     }
 
 }
 
-void ModelColumnToTableColumnMap::enableAndAddtoList(DisplayToDBTransferData enabledColumn) noexcept
+bool ModelColumnToTableColumnMap::enableAndAddtoList(DisplayToDBTransferData enabledColumn)
 {
     ColumnIds columnToFind = enabledColumn.columnId;
 
@@ -229,7 +293,14 @@ void ModelColumnToTableColumnMap::enableAndAddtoList(DisplayToDBTransferData ena
           [&columnToFind](ColumnAccessDataMap &cdm) {return (cdm.getColumnId() == columnToFind);});
     if (baseSource == staticModelMap.end())
     {
-        return;
+        if (throwExceptions)
+        {
+            std::string eMsg(
+                "Invalid Column ID Found Enabled List in SQL Statement Generation");
+            throw std::invalid_argument(eMsg);
+        }
+
+        return false;
     }
 
     // No duplicate columns in the enabled list of columns.
@@ -238,11 +309,13 @@ void ModelColumnToTableColumnMap::enableAndAddtoList(DisplayToDBTransferData ena
     {      
         if (duplicateInEnabledList(enabledColumn))
         {
-            return;
+            return true;
         }
     }
 
     enabledList.push_back(enabledColumn);
+
+    return true;
 }
 
 bool ModelColumnToTableColumnMap::duplicateInEnabledList(DisplayToDBTransferData candidateColumn)
@@ -326,6 +399,78 @@ std::string ModelColumnToTableColumnMap::buildJoinList(std::vector<TableIds> tab
     return joinSqlStr;
 }
 
+bool ModelColumnToTableColumnMap::sqlSanityCheck()
+{
+    bool noProblemsFound = true;
+
+    if (enabledList.size() < 1)
+    {
+        noProblemsFound = false;
+        if (throwExceptions)
+        {
+            std::string eMsg(
+                "Enabled List is Empty in SQL Statement Generation");
+            throw std::invalid_argument(eMsg);
+        }
+    }
+
+    if (hasUnImplementedColumns())
+    {
+        noProblemsFound = false;
+        if (throwExceptions)
+        {
+            std::string eMsg(
+                "Unimplemented Columns Found Enabled List in SQL Statement Generation");
+            throw std::invalid_argument(eMsg);
+        }
+    }
+
+    if (hasInvalidColumnId())
+    {
+        noProblemsFound = false;
+        if (throwExceptions)
+        {
+            std::string eMsg(
+                "Invalid Column ID Found Enabled List in SQL Statement Generation");
+            throw std::invalid_argument(eMsg);
+        }
+    }
+
+    return noProblemsFound;
+}
+
+bool ModelColumnToTableColumnMap::hasUnImplementedColumns() noexcept
+{
+    bool hasNotImplemented = false;
+
+    for (auto columnData: enabledList)
+    {
+        if (getColumnData(columnData.columnId).notImplementedYet())
+        {
+            return true;
+        }
+    }
+
+    return hasNotImplemented;
+}
+
+    
+bool ModelColumnToTableColumnMap::hasInvalidColumnId() noexcept
+{
+    bool badColumnID = false;
+
+    for (auto columnData: enabledList)
+    {
+        if (columnData.columnId == ColumnIds::NO_COLUMN ||
+            columnData.columnId >= ColumnIds::LAST_COLUMN_ID)
+        {
+            return true;
+        }
+    }
+
+    return badColumnID;
+}
+
 const ColumnAccessDataMap ModelColumnToTableColumnMap::getColumnData(ColumnIds columnId) const noexcept
 {
     auto columnSource = std::find_if(staticModelMap.begin(), staticModelMap.end(),
@@ -333,7 +478,7 @@ const ColumnAccessDataMap ModelColumnToTableColumnMap::getColumnData(ColumnIds c
 
     if (columnSource == staticModelMap.end())
     {
-        ColumnAccessDataMap badData(ColumnIds::NO_COLUMN, TableIds::NO_TABLE, "Bad Data", {"Bad Data"});
+        ColumnAccessDataMap badData(ColumnIds::NO_COLUMN, TableIds::NO_TABLE, "Bad Data", {});
         return badData;
     }
 
