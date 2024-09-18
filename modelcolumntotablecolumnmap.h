@@ -13,7 +13,7 @@
 class ModelColumnToTableColumnMap
 {
 public:
-    ModelColumnToTableColumnMap(bool throwEnabled=false) :throwExceptions{throwEnabled} {};
+    ModelColumnToTableColumnMap() = default;
     void enableUsedColumns(std::vector<DisplayToDBTransferData> dialogInput) noexcept;
     const std::string buildQueryString() noexcept;
     const std::vector<DisplayToDBTransferData> getEnabledList()
@@ -23,7 +23,6 @@ public:
     void resetEnabledColumns();
 
     // Debug and testing.
-    void enableExceptionThrowing(bool enabled) noexcept { throwExceptions = enabled; };
     void debugPrintEnabledList() { debugPrintTransferDataList(enabledList); };
     void debugPrintTransferDataList(std::vector<DisplayToDBTransferData> testList);
 
@@ -48,9 +47,9 @@ private:
     
     // Debug and testing.
     void debugPrintList(std::vector<ColumnAccessDataMap> listToPrint);
+    void reportError(std::string whatErr, std::string whereError);
 
     std::vector<DisplayToDBTransferData> enabledList;
-    bool throwExceptions = false;
 
 };
 

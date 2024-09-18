@@ -8,7 +8,6 @@
 
 static bool continueAfterFail = false;
 static std::size_t debugLevel = 0;
-static bool exceptionsEnabled = false;
 
 typedef struct unitTest
 {
@@ -29,7 +28,6 @@ void UnitTesting::getUserTestConfiguration()
 {
     getDebugLevel();
     getContinueAfterFail();
-    allowExceptions();
 }
 
 void UnitTesting::separaterLine(void)
@@ -85,21 +83,6 @@ void UnitTesting::getContinueAfterFail(void)
     } while (safeInput[0] != 'y' && safeInput[0] != 'n');
 }
 
-void UnitTesting::allowExceptions(void)
-{
-    std::string safeInput;
-    do {
-        std::cout << "Allow exceptions to be throw during SQL code generation? [Y(es)/n(o)]\n>>";
-        std::cin >> safeInput;
-        std::transform(safeInput.begin(), safeInput.end(),
-            safeInput.begin(), asciitolower);
-        if (safeInput[0] == 'y')
-        {
-            exceptionsEnabled = true;
-        }
-    } while (safeInput[0] != 'y' && safeInput[0] != 'n');
-}
-
 /*
  * The following functions are declared as static functions rather then
  * member functions of the UnitTesting class because there is no way in
@@ -134,7 +117,7 @@ static bool testAddingColumns()
 {
     bool testPassed = true;
 
-    ModelColumnToTableColumnMap testModel(exceptionsEnabled);
+    ModelColumnToTableColumnMap testModel;
 
     std::cout << "\n\n  Printing Enabled Columns, should be empty:\n";
 
@@ -154,14 +137,18 @@ static bool testAddingColumns()
 }
 
 /*
+ * Negative path testing.
+ */
+/*
  * Testing to make sure that there are no duplicate columns. The code attempts
  * to add the same vector of enabled columns twice.
  */
 static bool testNoDuplicateColumns()
 {
     bool testPassed = true;
+    std::cout << "Error messages are expected during the execution of this testS.\n";
 
-    ModelColumnToTableColumnMap testModel(exceptionsEnabled);
+    ModelColumnToTableColumnMap testModel;
 
     setUpTestsForColumnAddition(testModel);
 
@@ -181,7 +168,9 @@ static bool testNoDuplicateColumns()
 
     return testPassed;
 }
-
+/*
+ * Negative path testing.
+ */
 /*
  * The previous test checks that the ColumnIds value isn't duplicated. This test
  * checks to make sure the positions aren't reused.
@@ -189,7 +178,8 @@ static bool testNoDuplicateColumns()
 static bool testNoDuplicateColumns2()
 {
     bool testPassed = true;
-    ModelColumnToTableColumnMap testModel(exceptionsEnabled);
+    ModelColumnToTableColumnMap testModel;
+    std::cout << "Error messages are expected during the execution of this testS.\n";
 
     setUpTestsForColumnAddition(testModel);
 
@@ -217,7 +207,7 @@ static bool testNoDuplicateColumns2()
 static bool testResetenableList()
 {
     bool testPassed = true;
-    ModelColumnToTableColumnMap testModel(exceptionsEnabled);
+    ModelColumnToTableColumnMap testModel;
 
     setUpTestsForColumnAddition(testModel);
     std::cout << "\n\nTesting reset enabled list\n";
@@ -236,7 +226,7 @@ static bool testResetenableList()
 static bool testAddingColumnsToExistingList()
 {
     bool testPassed = true;
-    ModelColumnToTableColumnMap testModel(exceptionsEnabled);
+    ModelColumnToTableColumnMap testModel;
 
     setUpTestsForColumnAddition(testModel);
 
@@ -272,51 +262,31 @@ static bool genericSQLQueryGenerationTest(
 {
     bool testPassed = true;
 
-    try
+    std::cout << "\n\n" << testName << (passexpected?
+            " an SQL Query should be generated.\n" :
+            " an SQL Query should NOT be generated.\n");
+    if (!passexpected)
     {
-        std::cout << "\n\n" << testName << (passexpected?
-             " an SQL Query should be generated.\n" :
-             " an SQL Query should NOT be generated.\n");
-
-        ModelColumnToTableColumnMap testModel(exceptionsEnabled);
-        testModel.enableUsedColumns(sqlTestInput);
-    
-        std::string sqlQueryString = testModel.buildQueryString();
-
-        if (debugLevel)
-        {
-            std::cout << "Before string compare\n|" << sqlQueryString << "|\n";
-        }
-
-        if (sqlQueryString.compare(expectedSQLQuery))
-        {
-            std::cerr << testName << 
-                " generated SQL Statement not equal Expected SQL Statement\n\n";
-            std::cerr << "Expected SQL Statement: " << 
-                (expectedSQLQuery.empty()? "EMPTY STRING" : expectedSQLQuery) << "\n";
-            std::cerr << "Generated SQL Statement: " << sqlQueryString << "\n";
-            testPassed = false;
-        }
-
+        std::cout << "Error messages are expected during the execution of this testS.\n";
     }
-    catch (std::invalid_argument &ex) {
-        std::cerr << testName << "Invalid Argument Exception Caught: " << ex.what() << "\n";
-        testPassed = false;
-    }
-    catch (std::exception &ex) {
-        std::cerr << testName << " Exception Caught: " << ex.what() << "\n";
-        testPassed = false;
-    }
-    catch (std::string &sex)
+
+    ModelColumnToTableColumnMap testModel;
+    testModel.enableUsedColumns(sqlTestInput);
+
+    std::string sqlQueryString = testModel.buildQueryString();
+
+    if (debugLevel)
     {
-        std::cerr << testName << " String Exception Caught: " << sex << "\n";
-        testPassed = false;
+        std::cout << "Before string compare\n|" << sqlQueryString << "|\n";
     }
-    catch (...)
+
+    if (sqlQueryString.compare(expectedSQLQuery))
     {
-        std::cerr << testName << " Unknown Unhandled Exception Caught:\n";
-        std::exception_ptr p = std::current_exception();
-        handle_unexpected_eptr(p);
+        std::cerr << testName << 
+            " generated SQL Statement not equal Expected SQL Statement\n\n";
+        std::cerr << "Expected SQL Statement: " << 
+            (expectedSQLQuery.empty()? "EMPTY STRING" : expectedSQLQuery) << "\n";
+        std::cerr << "Generated SQL Statement: " << sqlQueryString << "\n";
         testPassed = false;
     }
 
@@ -503,14 +473,14 @@ static bool testUndefinedEnum()
 static std::vector <UnitTest> testList =
 {
     {testAddingColumns, "Adding columns test failed.\n"},
-    {testNoDuplicateColumns, "Preventing duplicate columns test 1 failed.\n"},
-    {testNoDuplicateColumns2, "Preventing duplicate columns test 2 failed.\n"},
     {testResetenableList, "Reset enable list test failed.\n"},
     {testAddingColumnsToExistingList, "Adding columns to existing enabled list test failed.\n"},
     {testBasicSQLQueryGeneration, "SQL query test failed.\n"},
     {testSQLQueryGenerationAlternateOrder, "SQL query with alternate order of columns test failed\n"},
-    // The following 2 tests are attempts to implement negative testing
+    // Begin Negative Test Path
     // No errors were detected during run or valgrind.
+    {testNoDuplicateColumns, "Preventing duplicate columns test 1 failed.\n"},
+    {testNoDuplicateColumns2, "Preventing duplicate columns test 2 failed.\n"},
     {testUnimplementedColumns, "Testing unimiplemented columns, SQL Query should not have been generated."},
     {testUndefinedEnum, "Testing Invalid enum values, SQL Query should not have been generated."}
 };

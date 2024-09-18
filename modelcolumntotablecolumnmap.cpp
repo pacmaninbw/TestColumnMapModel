@@ -179,56 +179,38 @@ const std::string ModelColumnToTableColumnMap::buildQueryString() noexcept
 {
     std::string sqlQuery;
 
-    try {
-        if (sqlSanityCheck())   // May throw an excpetion if exceptions enabled.
+    if (sqlSanityCheck())   // May throw an excpetion if exceptions enabled.
+    {
+        /*
+        * Sort the list to the order requested by the user.
+        */
+        std::sort(enabledList.begin(), enabledList.end(),
+            [](DisplayToDBTransferData a, DisplayToDBTransferData b)
+                {return  a.position < b.position;});
+
+        /*
+        * Generate an SQL query from the selected columns.
+        */
+        std::string selectedColumns("dpi.Date_of_items");
+        std::vector<TableIds> tablesToJoin;
+
+        for (auto columnData: enabledList)
         {
-            /*
-            * Sort the list to the order requested by the user.
-            */
-            std::sort(enabledList.begin(), enabledList.end(),
-                [](DisplayToDBTransferData a, DisplayToDBTransferData b)
-                    {return  a.position < b.position;});
-
-            /*
-            * Generate an SQL query from the selected columns.
-            */
-            std::string selectedColumns("dpi.Date_of_items");
-            std::vector<TableIds> tablesToJoin;
-
-            for (auto columnData: enabledList)
-            {
-                selectedColumns += ",\n";
-                selectedColumns += addColumn(columnData.columnId);
-                addTableToJoinList(tablesToJoin,
-                    getColumnData(columnData.columnId).getTableId());
-            }
-
-            sqlQuery += ("SELECT " + selectedColumns +
-                +"\nFROM Date_Primary_Indexing AS dpi\n" +
-                buildJoinList(tablesToJoin) +
-                "ORDER BY dpi.Date_of_items ASC;");
+            selectedColumns += ",\n";
+            selectedColumns += addColumn(columnData.columnId);
+            addTableToJoinList(tablesToJoin,
+                getColumnData(columnData.columnId).getTableId());
         }
-    }
-    catch (std::invalid_argument &ex) {
-        std::cerr << "Programmer Error: " << ex.what() << "\n";
-        sqlQuery.clear();
-    }
-    catch (std::exception &ex) {
-        std::cerr << "Programmer Error: " << ex.what() << "\n";
-        sqlQuery.clear();
-    }
-    catch (std::string &sex)
-    {
-        std::cerr << "Programmer Error: " << sex << "\n";
-        sqlQuery.clear();
-    }
-    catch (...)
-    {
-        std::exception_ptr p = std::current_exception();
-        handle_unexpected_eptr(p);
-        sqlQuery.clear();
-    }
 
+        sqlQuery += ("SELECT " + selectedColumns +
+            +"\nFROM Date_Primary_Indexing AS dpi\n" +
+            buildJoinList(tablesToJoin) +
+            "ORDER BY dpi.Date_of_items ASC;");
+    }
+    else
+    {
+        sqlQuery.clear();
+    }
  
     return sqlQuery;
 }
@@ -237,7 +219,6 @@ void ModelColumnToTableColumnMap::resetEnabledColumns()
 {
     enabledList.clear();
 }
-
 
 void ModelColumnToTableColumnMap::enableUsedColumns(std::vector<DisplayToDBTransferData> dialogInput) noexcept
 {
@@ -248,58 +229,27 @@ void ModelColumnToTableColumnMap::enableUsedColumns(std::vector<DisplayToDBTrans
             inputItem.columnId != ColumnIds::LAST_COLUMN_ID &&
             inputItem.position !=0)
         {
-            try
+            if (!enableAndAddtoList(inputItem))
             {
-                if (!enableAndAddtoList(inputItem))
-                {
-                    enabledList.clear();
-                    return;
-                }
-            }
-            catch (std::invalid_argument &ex) {
-                std::cerr << "Programmer Error: " << ex.what() << "\n";
-                enabledList.clear();
+                resetEnabledColumns();
                 return;
             }
-            catch (std::exception &ex) {
-                std::cerr << "Programmer Error: " << ex.what() << "\n";
-                enabledList.clear();
-                return;
-            }
-            catch (std::string &sex)
-            {
-                std::cerr << "Programmer Error: " << sex << "\n";
-                enabledList.clear();
-                return;
-            }
-            catch (...)
-            {
-                std::exception_ptr p = std::current_exception();
-                handle_unexpected_eptr(p);
-                enabledList.clear();
-                return;
-            }            
         }
     }
-
 }
 
 bool ModelColumnToTableColumnMap::enableAndAddtoList(DisplayToDBTransferData enabledColumn)
 {
     ColumnIds columnToFind = enabledColumn.columnId;
+    std::string whereIsError(" Adding Transfer Data to Enabled List\n\n");
 
     // Don't assume the input data is correct, only add legitamate columns.
     auto baseSource = std::find_if(staticModelMap.begin(), staticModelMap.end(),
           [&columnToFind](ColumnAccessDataMap &cdm) {return (cdm.getColumnId() == columnToFind);});
+
     if (baseSource == staticModelMap.end())
     {
-        if (throwExceptions)
-        {
-            std::string eMsg(
-                "Invalid Column ID Found Enabled List in SQL Statement Generation");
-            throw std::invalid_argument(eMsg);
-        }
-
+        reportError("Invalid Column ID", whereIsError);
         return false;
     }
 
@@ -309,6 +259,7 @@ bool ModelColumnToTableColumnMap::enableAndAddtoList(DisplayToDBTransferData ena
     {      
         if (duplicateInEnabledList(enabledColumn))
         {
+            reportError("Prevent Duplicate Column", whereIsError);
             return true;
         }
     }
@@ -399,41 +350,33 @@ std::string ModelColumnToTableColumnMap::buildJoinList(std::vector<TableIds> tab
     return joinSqlStr;
 }
 
+void ModelColumnToTableColumnMap::reportError(std::string whatError, std::string whereError)
+{
+    std::cerr << "\n\nPROGRAMMER ERROR: " << whatError << whereError;
+}
+
 bool ModelColumnToTableColumnMap::sqlSanityCheck()
 {
     bool noProblemsFound = true;
+    std::string errorWhere(" in SQL Statement Generation\n\n");
+    std::string whatMsg;
 
     if (enabledList.size() < 1)
     {
         noProblemsFound = false;
-        if (throwExceptions)
-        {
-            std::string eMsg(
-                "Enabled List is Empty in SQL Statement Generation");
-            throw std::invalid_argument(eMsg);
-        }
+        reportError("Enabled List is Empty", errorWhere);
     }
 
     if (hasUnImplementedColumns())
     {
         noProblemsFound = false;
-        if (throwExceptions)
-        {
-            std::string eMsg(
-                "Unimplemented Columns Found Enabled List in SQL Statement Generation");
-            throw std::invalid_argument(eMsg);
-        }
+        reportError("Unimplemented Columns Found in Enabled List", errorWhere);
     }
 
     if (hasInvalidColumnId())
     {
         noProblemsFound = false;
-        if (throwExceptions)
-        {
-            std::string eMsg(
-                "Invalid Column ID Found Enabled List in SQL Statement Generation");
-            throw std::invalid_argument(eMsg);
-        }
+        reportError("Invalid Column ID Found Enabled List", errorWhere);
     }
 
     return noProblemsFound;

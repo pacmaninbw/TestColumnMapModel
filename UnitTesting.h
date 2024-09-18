@@ -15,7 +15,6 @@ public:
 private:
     void separaterLine(void);
     void getDebugLevel(void);
-    void allowExceptions(void);
     void getContinueAfterFail(void);
     // Copied from another Stack Overflow answer.
     bool is_number(const std::string& s)
